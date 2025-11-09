@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonoMachine Web Rebuild</title>
+  <link rel="stylesheet" href="/static/style.css" />
+
+</head>
+<body>
+  <main class="container">
+    <div class="lcd-screen">
+      <p id="displayText">MONOMACHINE WEB</p>
+    </div>
+
+    <div class="controls">
+      <div class="power-indicator" id="powerIndicator"></div>
+      <button id="powerBtn" class="btn">POWER</button>
+      <button id="playBtn" class="btn">PLAY</button>
+      <label>
+        Mix volume
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5" />
+      </label>
+      <label>
+        Mix frequency
+        <input id="frequency" type="range" min="100" max="2000" step="1" value="440" />
+      </label>
+    </div>
+
+    <div class="multi-track-grid" id="multiTrackGrid"></div>
+
+    <div class="step-editor" id="stepEditor">
+      <h3>Step Editor</h3>
+      <label>
+        Frequency
+        <input type="range" id="stepFreq" min="100" max="2000" step="1" />
+      </label>
+      <label>
+        Volume
+        <input type="range" id="stepVol" min="0" max="1" step="0.01" />
+      </label>
+      <label>
+        Oscillator
+        <select id="stepOsc">
+          <option value="sine">Sine</option>
+          <option value="square">Square</option>
+          <option value="sawtooth">Sawtooth</option>
+          <option value="triangle">Triangle</option>
+          <option value="noise">White Noise</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="patternControls">
+      <h3>Pattern Memory</h3>
+      <div class="patterns">
+        <button data-pattern="0">P1</button>
+        <button data-pattern="1">P2</button>
+        <button data-pattern="2">P3</button>
+        <button data-pattern="3">P4</button>
+        <button data-pattern="4">P5</button>
+        <button data-pattern="5">P6</button>
+        <button data-pattern="6">P7</button>
+        <button data-pattern="7">P8</button>
+      </div>
+      <button id="chainPatterns">Chain Selected</button>
+    </div>
+  </main>
+
+  <!-- Right Side Modulation Panel -->
+  <aside id="modPanel">
+    <h3>Modulation & Filter</h3>
+    <label>
+      LFO Rate
+      <input type="range" id="stepLfoRate" min="0" max="20" step="0.1" />
+    </label>
+    <label>
+      LFO Depth
+      <input type="range" id="stepLfoDepth" min="0" max="500" step="1" />
+    </label>
+    <label>
+      LFO Target
+      <select id="stepLfoTarget">
+        <option value="none">None</option>
+        <option value="freq">Frequency</option>
+        <option value="vol">Volume</option>
+        <option value="filter">Filter</option>
+      </select>
+    </label>
+    <label>
+      Filter Cutoff
+      <input type="range" id="stepFilterCutoff" min="200" max="12000" step="10" />
+    </label>
+    <label>
+      Filter Resonance
+      <input type="range" id="stepFilterRes" min="0" max="20" step="0.1" />
+    </label>
+    <hr class="panel-separator" />
+
+    <div class="mod-visuals">
+      <canvas id="modGraph" width="260" height="80"></canvas>
+      <canvas id="adsrPreview" width="260" height="50"></canvas>
+    </div>
+
+    <div class="knob-section">
+      <div class="knob">
+        <input type="range" id="stepNoiseTone" min="0" max="1" step="0.01" />
+        <label>Noise Tone</label>
+      </div>
+      <div class="knob">
+        <input type="range" id="stepAttack" min="0" max="2" step="0.01" />
+        <label>Attack</label>
+      </div>
+      <div class="knob">
+        <input type="range" id="stepDecay" min="0" max="2" step="0.01" />
+        <label>Decay</label>
+      </div>
+      <div class="knob">
+        <input type="range" id="stepSustain" min="0" max="1" step="0.01" />
+        <label>Sustain</label>
+      </div>
+      <div class="knob">
+        <input type="range" id="stepRelease" min="0" max="2" step="0.01" />
+        <label>Release</label>
+      </div>
+    </div>
+
+  </aside>
+
+  <script type="module" src="/static/main.js/main.js"></script>
+</body>
+</html>

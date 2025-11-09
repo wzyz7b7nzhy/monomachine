@@ -1,0 +1,340 @@
+/* === GLOBAL RETRO-FUTURISM THEME === */
+body {
+    margin: 0;
+    padding: 0;
+    background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
+    color: #eee;
+    font-family: 'Orbitron', 'Share Tech Mono', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* === MAIN CONTAINER === */
+/* Move the main container slightly to avoid overlap with Mod Panel */
+.container {
+    flex: 1;
+    max-width: 950px;
+    background: linear-gradient(145deg, #1a1a1a, #111);
+    border: 2px solid #222;
+    border-radius: 12px;
+    box-shadow: 0 0 25px #00ffff33;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    position: relative;
+    margin-right: 320px; /* <-- Added to make space for modPanel */
+  }
+  
+  /* === LCD SCREEN === */
+  .lcd-screen {
+    background: linear-gradient(to bottom, #0f0, #030);
+    color: #111;
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: bold;
+    text-shadow: 0 0 3px #9f9;
+    box-shadow: inset 0 0 10px #0f0;
+    font-size: 1.2em;
+    letter-spacing: 1px;
+  }
+  
+  /* === CONTROLS === */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #181818;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #333;
+  }
+  
+  .switch-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  /* Power toggle switch */
+  .power-switch {
+    position: relative;
+    width: 55px;
+    height: 26px;
+    background: #222;
+    border-radius: 20px;
+    border: 1px solid #555;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  .power-switch::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: #555;
+    border-radius: 50%;
+    top: 1px;
+    left: 2px;
+    transition: all 0.3s;
+    box-shadow: 0 0 6px #0f0;
+  }
+  
+  .power-switch.on {
+    background: #0f03;
+    border-color: #0f0;
+  }
+  
+  .power-switch.on::before {
+    left: 30px;
+    background: #0f0;
+  }
+  
+  .power-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #300;
+    transition: background 0.3s;
+  }
+  
+  .power-on .power-indicator {
+    background: #0f0;
+    box-shadow: 0 0 6px #0f0;
+  }
+  
+  /* === PLAY BUTTON === */
+  .play-btn {
+    width: 45px;
+    height: 45px;
+    background: radial-gradient(circle at 40% 40%, #222 0%, #111 80%);
+    border: 2px solid #666;
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .play-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-left: 12px solid #0f0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    transform: translate(-40%, -50%);
+  }
+  
+  .play-btn.active {
+    box-shadow: 0 0 15px #0f0;
+    border-color: #0f0;
+  }
+  
+  .controls label {
+    font-size: 0.85rem;
+    color: #ccc;
+    margin-left: 10px;
+  }
+  
+  input[type="range"] {
+    accent-color: #0ff;
+  }
+  
+  /* === GRID === */
+  .multi-track-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+  
+  .track-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  
+  .step {
+    flex: 1;
+    height: 30px;
+    border: 1px solid #444;
+    border-radius: 3px;
+    background: linear-gradient(to bottom, #222, #111);
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  
+  .step.active {
+    background: #0f0;
+    box-shadow: 0 0 6px #0f0;
+  }
+  
+  .step.current {
+    border: 1px solid #ff0;
+    box-shadow: 0 0 6px #ff0;
+  }
+  
+  /* === STEP EDITOR === */
+  .step-editor {
+    display: block;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px;
+    color: #0ff;
+    width: 100%;
+    margin-top: 10px;
+    box-shadow: 0 0 12px #0ff3;
+  }
+  
+  /* === MOD PANEL === */
+  #modPanel {
+    width: 280px;
+    background: linear-gradient(145deg, #151515, #0b0b0b);
+    border: 2px solid #222;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 0 15px #00ffff22;
+    height: calc(100vh - 30px);
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: auto;
+  }
+  
+  #modPanel h3 {
+    text-align: center;
+    margin-top: 0;
+    color: #0ff;
+    letter-spacing: 1px;
+  }
+  
+  #modPanel label {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #bbb;
+  }
+  
+  #modPanel input[type="range"],
+  #modPanel select {
+    width: 100%;
+    margin-top: 3px;
+    margin-bottom: 10px;
+    background: #222;
+    border: 1px solid #444;
+    color: #0ff;
+  }
+  
+  /* === PATTERN MEMORY === */
+  #patternControls {
+    background: #181818;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+  }
+  
+  #patternControls h3 {
+    margin: 0 0 5px;
+    color: #0ff;
+  }
+  
+  .patterns button {
+    background: #222;
+    color: #0ff;
+    border: 1px solid #555;
+    margin: 2px;
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  
+  .patterns button:hover {
+    background: #0ff;
+    color: #000;
+  }
+
+  /* --- Separator Line --- */
+.panel-separator {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 16px 0;
+}
+
+/* --- Knob Section --- */
+.knob-section {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+}
+
+.knob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Share Tech Mono', monospace;
+  color: #fff;
+  font-size: 0.8rem;
+}
+
+/* --- Make range inputs look like knobs --- */
+.knob input[type="range"] {
+  appearance: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #333 0%, #000 80%);
+  position: relative;
+  transform: rotate(-135deg);
+  cursor: pointer;
+}
+
+.knob input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: #ffcc00;
+  border-radius: 50%;
+  box-shadow: 0 0 5px #ffcc00;
+}
+
+.knob input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: #ffcc00;
+  border-radius: 50%;
+  box-shadow: 0 0 5px #ffcc00;
+}
+
+.mod-visuals {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #111;
+  padding: 6px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  box-shadow: inset 0 0 6px #000;
+}
+
+.mod-visuals canvas {
+  border: 1px solid #222;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
