@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepSustain = document.getElementById('stepSustain');
   const stepRelease = document.getElementById('stepRelease');
 
+  const driveKnobInput = document.getElementById('driveKnob');
+
   // ==== STATE ====
   const TOTAL_STEPS = 16;
   const NUM_TRACKS = 4;
@@ -56,18 +58,35 @@ document.addEventListener('DOMContentLoaded', () => {
   let patternQueue = [];
   let currentQueueIndex = 0;
   let selectedStep = { track: 0, step: 0 };
-  let currentNoiseTone = 0.5; // used by visualizer if no note present
+  let currentNoiseTone = 0.5;
 
-  // Default ADSR helper
   const defaultADSR = () => ({ attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.2 });
+  window.globalDrive = 0.5;
 
   // ==== INIT UI ====
-  // Setup UI visuals (safe - does nothing if elements missing)
-  try {
-    setupUI();
-  } catch (e) {
-    console.warn('setupUI failed:', e);
-  }
+  try { setupUI(); } catch (e) { console.warn('setupUI failed:', e); }
+
+  // ==== DRIVE KNOB ====
+if (driveKnobInput) {
+  driveKnobInput.addEventListener('input', () => {
+    const val = parseFloat(driveKnobInput.value);
+    window.globalDrive = val;
+
+    const { track, step } = selectedStep;
+    if (patterns[currentPattern][track][step]) {
+      window.selectedStep.adsr.drive = val;
+      // redraw mod graph for current step
+      const adsr = patterns[currentPattern][track][step].adsr ?? defaultADSR();
+      drawModulationGraph(
+        adsr,
+        patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone,
+        patterns[currentPattern][track][step].osc === 'noise'
+      );
+    }
+
+    document.dispatchEvent(new CustomEvent('driveChange', { detail: val }));
+  });
+}
 
   // ==== GRID CREATION ====
   function createGrid() {
@@ -89,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Ensure note object exists with defaults
   function ensureNoteExists(track, step) {
     if (!patterns[currentPattern][track][step]) {
       patterns[currentPattern][track][step] = {
@@ -103,24 +121,22 @@ document.addEventListener('DOMContentLoaded', () => {
         filterRes: 0,
         noiseTone: currentNoiseTone,
         adsr: defaultADSR(),
+        drive: window.globalDrive,
       };
     }
     return patterns[currentPattern][track][step];
   }
 
-  // Helpers used by visual functions
   function getCurrentStepADSR() {
     const { track, step } = selectedStep;
     const note = patterns[currentPattern]?.[track]?.[step];
     return (note && note.adsr) ? note.adsr : defaultADSR();
   }
+
   function isCurrentNoiseOsc() {
     const { track, step } = selectedStep;
     const note = patterns[currentPattern]?.[track]?.[step];
-    if (!note) {
-      // if no note, check UI oscillator select
-      return stepOsc?.value === 'noise';
-    }
+    if (!note) return stepOsc?.value === 'noise';
     return note.osc === 'noise';
   }
 
@@ -130,35 +146,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const note = patterns[currentPattern][track][step];
 
     if (note) {
-      if (stepFreq) stepFreq.value = note.freq ?? 440;
-      if (stepVol) stepVol.value = note.vol ?? 0.4;
-      if (stepOsc) stepOsc.value = note.osc ?? 'square';
+      stepFreq && (stepFreq.value = note.freq ?? 440);
+      stepVol && (stepVol.value = note.vol ?? 0.4);
+      stepOsc && (stepOsc.value = note.osc ?? 'square');
     } else {
-      if (stepFreq) stepFreq.value = 440;
-      if (stepVol) stepVol.value = 0.4;
-      if (stepOsc) stepOsc.value = 'square';
+      stepFreq && (stepFreq.value = 440);
+      stepVol && (stepVol.value = 0.4);
+      stepOsc && (stepOsc.value = 'square');
     }
 
     updateModPanel();
+    stepFreq && (stepFreq.disabled = stepOsc?.value === 'noise');
+    try { updateNoiseToneUI(stepOsc?.value === 'noise'); } catch (e) {}
 
-    // Disable freq slider for noise oscillator
-    if (stepFreq && stepOsc) stepFreq.disabled = (stepOsc.value === 'noise');
-
-    // Update Noise Tone UI (shaded if not noise)
-    try {
-      updateNoiseToneUI(stepOsc?.value === 'noise');
-    } catch (e) {
-      // ignore
-    }
-
-    // Draw ADSR preview (safe)
     try {
       const adsr = getCurrentStepADSR();
       updateADSRPreview(adsr);
       drawModulationGraph(adsr, note?.noiseTone ?? currentNoiseTone, isCurrentNoiseOsc());
-    } catch (e) {
-      // ignore drawing errors
-    }
+    } catch (e) {}
   }
 
   function toggleStep(track, step) {
@@ -181,7 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
           decay: parseFloat(stepDecay?.value) || defaultADSR().decay,
           sustain: parseFloat(stepSustain?.value) || defaultADSR().sustain,
           release: parseFloat(stepRelease?.value) || defaultADSR().release,
+          drive: window.globalDrive ?? 0.5,
         },
+        drive: window.globalDrive,
       };
     }
     updateGrid();
@@ -206,13 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
     patterns[currentPattern][track][step][param] = value;
     updateGrid();
 
-    // Draw ADSR if an ADSR param changed
     if (param === 'adsr') {
       try {
-        updateADSRPreview(patterns[currentPattern][track][step].adsr);
-        drawModulationGraph(patterns[currentPattern][track][step].adsr,
-          patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone,
-          patterns[currentPattern][track][step].osc === 'noise');
+        const note = patterns[currentPattern][track][step];
+        updateADSRPreview(note.adsr);
+        drawModulationGraph(note.adsr, note.noiseTone ?? currentNoiseTone, note.osc === 'noise');
       } catch (e) {}
     }
   }
@@ -221,9 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
   stepVol?.addEventListener('input', () => updateStepParam('vol', parseFloat(stepVol.value)));
   stepOsc?.addEventListener('input', () => {
     updateStepParam('osc', stepOsc.value);
-    if (stepFreq) stepFreq.disabled = (stepOsc.value === 'noise');
+    stepFreq && (stepFreq.disabled = stepOsc.value === 'noise');
     try { updateNoiseToneUI(stepOsc.value === 'noise'); } catch (e) {}
-    // update graph even if no note exists yet
     try {
       const adsr = getCurrentStepADSR();
       drawModulationGraph(adsr, currentNoiseTone, stepOsc.value === 'noise');
@@ -235,50 +239,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const { track, step } = selectedStep;
     const note = patterns[currentPattern][track][step];
     if (note) {
-      if (stepLfoRate) stepLfoRate.value = note.lfoRate ?? 0;
-      if (stepLfoDepth) stepLfoDepth.value = note.lfoDepth ?? 0;
-      if (stepLfoTarget) stepLfoTarget.value = note.lfoTarget ?? 'none';
-      if (stepFilterCutoff) stepFilterCutoff.value = note.filterCutoff ?? 10000;
-      if (stepFilterRes) stepFilterRes.value = note.filterRes ?? 0;
-
-      if (stepNoiseTone) stepNoiseTone.value = note.noiseTone ?? currentNoiseTone;
+      stepLfoRate && (stepLfoRate.value = note.lfoRate ?? 0);
+      stepLfoDepth && (stepLfoDepth.value = note.lfoDepth ?? 0);
+      stepLfoTarget && (stepLfoTarget.value = note.lfoTarget ?? 'none');
+      stepFilterCutoff && (stepFilterCutoff.value = note.filterCutoff ?? 10000);
+      stepFilterRes && (stepFilterRes.value = note.filterRes ?? 0);
+      stepNoiseTone && (stepNoiseTone.value = note.noiseTone ?? currentNoiseTone);
       const adsr = note.adsr ?? defaultADSR();
-      if (stepAttack) stepAttack.value = adsr.attack;
-      if (stepDecay) stepDecay.value = adsr.decay;
-      if (stepSustain) stepSustain.value = adsr.sustain;
-      if (stepRelease) stepRelease.value = adsr.release;
+      stepAttack && (stepAttack.value = adsr.attack);
+      stepDecay && (stepDecay.value = adsr.decay);
+      stepSustain && (stepSustain.value = adsr.sustain);
+      stepRelease && (stepRelease.value = adsr.release);
 
-      // Update ADSR preview
-      try {
-        updateADSRPreview(adsr);
-        drawModulationGraph(adsr, note.noiseTone ?? currentNoiseTone, note.osc === 'noise');
-      } catch (e) {}
-      // Update Noise Tone UI shading
+      try { updateADSRPreview(adsr); drawModulationGraph(adsr, note.noiseTone ?? currentNoiseTone, note.osc === 'noise'); } catch (e) {}
       try { updateNoiseToneUI(note.osc === 'noise'); } catch (e) {}
     } else {
-      // no note: set sensible defaults
-      if (stepLfoRate) stepLfoRate.value = 0;
-      if (stepLfoDepth) stepLfoDepth.value = 0;
-      if (stepLfoTarget) stepLfoTarget.value = 'none';
-      if (stepFilterCutoff) stepFilterCutoff.value = 10000;
-      if (stepFilterRes) stepFilterRes.value = 0;
-
-      if (stepNoiseTone) stepNoiseTone.value = currentNoiseTone;
+      stepLfoRate && (stepLfoRate.value = 0);
+      stepLfoDepth && (stepLfoDepth.value = 0);
+      stepLfoTarget && (stepLfoTarget.value = 'none');
+      stepFilterCutoff && (stepFilterCutoff.value = 10000);
+      stepFilterRes && (stepFilterRes.value = 0);
+      stepNoiseTone && (stepNoiseTone.value = currentNoiseTone);
       const adsr = defaultADSR();
-      if (stepAttack) stepAttack.value = adsr.attack;
-      if (stepDecay) stepDecay.value = adsr.decay;
-      if (stepSustain) stepSustain.value = adsr.sustain;
-      if (stepRelease) stepRelease.value = adsr.release;
+      stepAttack && (stepAttack.value = adsr.attack);
+      stepDecay && (stepDecay.value = adsr.decay);
+      stepSustain && (stepSustain.value = adsr.sustain);
+      stepRelease && (stepRelease.value = adsr.release);
 
-      try {
-        updateADSRPreview(adsr);
-        drawModulationGraph(adsr, currentNoiseTone, isCurrentNoiseOsc());
-        updateNoiseToneUI(isCurrentNoiseOsc());
-      } catch (e) {}
+      try { updateADSRPreview(adsr); drawModulationGraph(adsr, currentNoiseTone, isCurrentNoiseOsc()); updateNoiseToneUI(isCurrentNoiseOsc()); } catch (e) {}
     }
   }
 
-  // Listeners for mod panel controls
   [stepLfoRate, stepLfoDepth, stepLfoTarget, stepFilterCutoff, stepFilterRes].forEach((ctrl) => {
     ctrl?.addEventListener('input', () => {
       const { track, step } = selectedStep;
@@ -291,18 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Noise Tone & ADSR controls
   stepNoiseTone?.addEventListener('input', () => {
     currentNoiseTone = parseFloat(stepNoiseTone.value);
     const { track, step } = selectedStep;
     if (patterns[currentPattern][track][step]) {
       patterns[currentPattern][track][step].noiseTone = currentNoiseTone;
     }
-    // update visuals
-    try {
-      const adsr = getCurrentStepADSR();
-      drawModulationGraph(adsr, currentNoiseTone, isCurrentNoiseOsc());
-    } catch (e) {}
+    try { const adsr = getCurrentStepADSR(); drawModulationGraph(adsr, currentNoiseTone, isCurrentNoiseOsc()); } catch (e) {}
   });
 
   stepAttack?.addEventListener('input', () => {
@@ -310,31 +296,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!patterns[currentPattern][track][step]) return;
     patterns[currentPattern][track][step].adsr.attack = parseFloat(stepAttack.value);
     const adsr = patterns[currentPattern][track][step].adsr;
-    try { updateADSRPreview(adsr); drawModulationGraph(adsr, patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone, patterns[currentPattern][track][step].osc === 'noise'); } catch (e) {}
+    try { updateADSRPreview(adsr); drawModulationGraph(adsr, patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone, patterns[currentPattern][track][step].osc === 'noise'); } catch(e){}
   });
-
   stepDecay?.addEventListener('input', () => {
     const { track, step } = selectedStep;
     if (!patterns[currentPattern][track][step]) return;
     patterns[currentPattern][track][step].adsr.decay = parseFloat(stepDecay.value);
     const adsr = patterns[currentPattern][track][step].adsr;
-    try { updateADSRPreview(adsr); drawModulationGraph(adsr, patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone, patterns[currentPattern][track][step].osc === 'noise'); } catch (e) {}
+    try { updateADSRPreview(adsr); drawModulationGraph(adsr, patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone, patterns[currentPattern][track][step].osc === 'noise'); } catch(e){}
   });
-
   stepSustain?.addEventListener('input', () => {
     const { track, step } = selectedStep;
     if (!patterns[currentPattern][track][step]) return;
     patterns[currentPattern][track][step].adsr.sustain = parseFloat(stepSustain.value);
     const adsr = patterns[currentPattern][track][step].adsr;
-    try { updateADSRPreview(adsr); drawModulationGraph(adsr, patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone, patterns[currentPattern][track][step].osc === 'noise'); } catch (e) {}
+    try { updateADSRPreview(adsr); drawModulationGraph(adsr, patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone, patterns[currentPattern][track][step].osc === 'noise'); } catch(e){}
   });
-
   stepRelease?.addEventListener('input', () => {
     const { track, step } = selectedStep;
     if (!patterns[currentPattern][track][step]) return;
     patterns[currentPattern][track][step].adsr.release = parseFloat(stepRelease.value);
     const adsr = patterns[currentPattern][track][step].adsr;
-    try { updateADSRPreview(adsr); drawModulationGraph(adsr, patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone, patterns[currentPattern][track][step].osc === 'noise'); } catch (e) {}
+    try { updateADSRPreview(adsr); drawModulationGraph(adsr, patterns[currentPattern][track][step].noiseTone ?? currentNoiseTone, patterns[currentPattern][track][step].osc === 'noise'); } catch(e){}
   });
 
   // ==== PATTERN MEMORY ====
@@ -346,10 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateGrid();
         highlightCurrentPattern();
       } else {
-        if (!patternQueue.includes(index)) {
-          patternQueue.push(index);
-          updateQueueVisual();
-        }
+        if (!patternQueue.includes(index)) patternQueue.push(index);
+        updateQueueVisual();
       }
     });
   });
@@ -360,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ==== CHAINING ====
   if (chainBtn) {
     chainBtn.addEventListener('click', () => {
       chainMode = !chainMode;
@@ -407,19 +387,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Power button logic
   powerBtn?.addEventListener('click', async () => {
     await ensureAudioContextRunning();
     console.log('Power on ✅');
     if (powerIndicator) powerIndicator.style.backgroundColor = '#0f0';
   });
 
-  // Auto-resume AudioContext after sleep on first user interaction
-  document.addEventListener('click', async () => {
-    await ensureAudioContextRunning();
-  }, { once: true });
+  document.addEventListener('click', async () => { await ensureAudioContextRunning(); }, { once: true });
 
-  // Play button logic
   playBtn?.addEventListener('click', async () => {
     await ensureAudioContextRunning();
     if (!sequencer.isPlaying) {
@@ -431,13 +406,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ==== SEQUENCER ====
   const originalStepCallback = sequencer.onStepCallback;
   sequencer.onStepCallback = (step) => {
     if (typeof originalStepCallback === 'function') originalStepCallback(step);
-
-    const allSteps = grid?.querySelectorAll('.step');
-    allSteps?.forEach((el) => el.classList.remove('current'));
+    grid?.querySelectorAll('.step')?.forEach((el) => el.classList.remove('current'));
     grid?.querySelectorAll(`[data-step="${step}"]`)?.forEach((el) => el.classList.add('current'));
 
     let activePattern = currentPattern;
@@ -470,6 +442,6 @@ document.addEventListener('DOMContentLoaded', () => {
   createGrid();
   updateGrid();
   highlightCurrentPattern();
-  openStepEditor(0, 0); // show first step by default
-  console.log('✅ Noise Tone + ADSR + UI integrated in main.js');
+  openStepEditor(0, 0);
+  console.log('✅ Fully integrated: Noise Tone + ADSR + Drive + Sequencer + UI');
 });

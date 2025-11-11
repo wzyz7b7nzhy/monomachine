@@ -67,16 +67,18 @@ class AudioEngine {
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(filterCutoff, now);
     filter.Q.setValueAtTime(filterRes, now);
-
+    
     // --- Gain (Envelope) ---
     const gain = ctx.createGain();
     const attackEnd = now + adsr.attack;
     const decayEnd = attackEnd + adsr.decay;
 
+    const drive = adsr.drive ?? 0.5; // default drive if not set
+
     gain.gain.cancelScheduledValues(now);
     gain.gain.setValueAtTime(0.0, now);
-    gain.gain.linearRampToValueAtTime(vol, attackEnd);
-    gain.gain.linearRampToValueAtTime(vol * adsr.sustain, decayEnd);
+    gain.gain.linearRampToValueAtTime(vol * drive, attackEnd);
+    gain.gain.linearRampToValueAtTime(vol * adsr.sustain * drive, decayEnd);
     gain.gain.linearRampToValueAtTime(0.0, now + dur + adsr.release);
 
     // --- LFO ---
@@ -94,11 +96,27 @@ class AudioEngine {
       lfo.start();
       lfo.stop(now + dur + adsr.release);
     }
+    
+    // --- DRIVE / DISTORTION ---
+    const driveAmount = adsr.drive ?? 0.5;
+    const driveNode = ctx.createWaveShaper();
 
-    // --- Connections ---
-    sourceNode.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
+    // make a distortion curve based on drive amount
+    const makeDistortionCurve = (amount = 0) => {
+    const k = amount * 100; // scale drive amount
+    const n_samples = 44100;
+    const curve = new Float32Array(n_samples);
+    const deg = Math.PI / 180;
+    let x;
+    for (let i = 0; i < n_samples; ++i) {
+      x = (i * 2) / n_samples - 1;
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+  };
+
+  driveNode.curve = makeDistortionCurve(drive);
+  driveNode.oversample = "4x";
   }
 }
 
